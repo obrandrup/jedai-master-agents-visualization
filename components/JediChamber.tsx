@@ -618,6 +618,143 @@ function MidichlorianPanel({ agents, assignments, open, onClose }: {
   );
 }
 
+// ─── Mission Briefing (first-visit overlay) ──────────────────────────────────
+function MissionBriefing({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <motion.div className="briefing-overlay"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      onClick={onDismiss}>
+      <motion.div className="briefing-card"
+        initial={{ y: 28, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.12, type: "spring", stiffness: 260, damping: 28 }}
+        onClick={e => e.stopPropagation()}>
+        <div className="briefing-header">
+          <div className="briefing-icon">⚔</div>
+          <div className="briefing-title">JEDI COUNCIL</div>
+          <div className="briefing-sub">Autonomous Agent Network · Coruscant Division</div>
+        </div>
+        <div className="briefing-body">
+          <p className="briefing-desc">
+            Each figure in the chamber is a <strong>live AI agent</strong> running a real task.
+            Status rings pulse when active. Planets indicate mission tier.
+          </p>
+          <div className="briefing-tiers">
+            <div className="briefing-tier">
+              <span className="briefing-tier-dots" style={{ color:"#f5c842" }}>●●●</span>
+              <strong>Tatooine</strong> — High priority · Websites &amp; Grand Masters
+            </div>
+            <div className="briefing-tier">
+              <span className="briefing-tier-dots" style={{ color:"#818cf8" }}>●●</span>
+              <strong>Coruscant</strong> — Medium priority · SaaS Tools
+            </div>
+            <div className="briefing-tier">
+              <span className="briefing-tier-dots" style={{ color:"#4ade80" }}>●</span>
+              <strong>Dagobah</strong> — Low priority · Personal &amp; Experimental
+            </div>
+            <div className="briefing-tier">
+              <span className="briefing-tier-dots" style={{ color:"#c080ff" }}>✦</span>
+              <strong>Jedai Councode</strong> — The Council · All Systems
+            </div>
+          </div>
+          <p className="briefing-hint">
+            <strong>Click</strong> any agent to assign a mission · <strong>Drag</strong> to reposition · <strong>⚡ MIDI</strong> ranks by Force strength
+          </p>
+        </div>
+        <button className="briefing-cta" onClick={onDismiss}>ENTER THE COUNCIL →</button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ─── Agent assign drawer ──────────────────────────────────────────────────────
+function AgentDrawer({ agent, character, onClose, onDispatch }: {
+  agent: AgentRecord;
+  character: JediCharacter;
+  onClose: () => void;
+  onDispatch: (agentId: string, task: string) => Promise<void>;
+}) {
+  const [taskInput, setTaskInput] = useState("");
+  const [sending, setSending]     = useState(false);
+  const [sent,    setSent]        = useState(false);
+  const wp = WEAPON_MAP[character.id] ?? { color: character.color, type: "saber" as WeaponType };
+
+  async function handleDispatch() {
+    if (!taskInput.trim()) return;
+    setSending(true);
+    await onDispatch(agent.id, taskInput.trim());
+    setSending(false);
+    setSent(true);
+    setTimeout(() => { setSent(false); setTaskInput(""); }, 2200);
+  }
+
+  return (
+    <motion.div className="agent-drawer"
+      initial={{ x: 380 }} animate={{ x: 0 }} exit={{ x: 380 }}
+      transition={{ type: "spring", stiffness: 280, damping: 32 }}>
+      <div className="drawer-header">
+        <div className="drawer-identity">
+          <span className="drawer-char-name" style={{ color: character.color }}>
+            {character.name.toUpperCase()}
+          </span>
+          <span className="drawer-agent-name">/ {agent.name}</span>
+        </div>
+        <button className="midi-close" onClick={onClose}>✕</button>
+      </div>
+
+      <div className="drawer-status-row">
+        <span className="drawer-status-dot" style={{ background: STATUS_COLOR[agent.status] }} />
+        <span className="drawer-status-label" style={{ color: STATUS_COLOR[agent.status] }}>
+          {agent.status.toUpperCase()}
+        </span>
+        <span className="drawer-priority-badge">
+          {agent.priority.toUpperCase()} · {wp.type.toUpperCase()}
+        </span>
+      </div>
+
+      {agent.task && (
+        <div className="drawer-section">
+          <div className="drawer-section-label">CURRENT MISSION</div>
+          <div className="drawer-current-task">{agent.task}</div>
+        </div>
+      )}
+
+      <div className="drawer-section drawer-assign-section">
+        <div className="drawer-section-label">TRANSMIT NEW ORDERS</div>
+        <textarea
+          className="drawer-textarea"
+          placeholder={`Give ${character.name} a mission…`}
+          value={taskInput}
+          onChange={e => setTaskInput(e.target.value)}
+          rows={4}
+          onKeyDown={e => { if (e.key === "Enter" && e.metaKey) handleDispatch(); }}
+        />
+        <button
+          className={`drawer-dispatch-btn${sent ? " sent" : ""}`}
+          onClick={handleDispatch}
+          disabled={sending || sent || !taskInput.trim()}>
+          {sent ? "✓ MISSION TRANSMITTED" : sending ? "TRANSMITTING…" : `⚡ DISPATCH ${character.name.toUpperCase()}`}
+        </button>
+        <div className="drawer-hint">⌘ + Enter to send</div>
+      </div>
+
+      <div className="drawer-footer">
+        <div className="drawer-weapon-row">
+          <span className="drawer-weapon-label">WEAPON</span>
+          <span className="drawer-weapon-val" style={{ color: wp.color }}>
+            {wp.type.toUpperCase()}
+          </span>
+        </div>
+        <div className="drawer-weapon-row">
+          <span className="drawer-weapon-label">TIER</span>
+          <span className="drawer-weapon-val" style={{ color: agent.priority==="high"?"#f5c842":agent.priority==="medium"?"#818cf8":"#4ade80" }}>
+            {agent.priority==="high"?"TATOOINE":agent.priority==="medium"?"CORUSCANT":"DAGOBAH"}
+          </span>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 // ─── Completion event tracking ────────────────────────────────────────────────
 type CompletionEvent = {
   id: string;         // unique event id
@@ -648,6 +785,11 @@ export default function JediChamber() {
   const [pulseKey,    setPulseKey]    = useState(0);
   const [dragId,      setDragId]      = useState<string|null>(null);
   const [midiOpen,    setMidiOpen]    = useState(false);
+  const [showBriefing, setShowBriefing] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return !localStorage.getItem("jedi-briefing-seen");
+  });
+  const [assignDrawer, setAssignDrawer] = useState<{agent:AgentRecord;char:JediCharacter}|null>(null);
   const [dynVW, setDynVW] = useState(() => {
     if (typeof window === "undefined") return BASE_VW;
     // topbar ≈56px, legend ≈38px
@@ -667,7 +809,7 @@ export default function JediChamber() {
 
   const svgRef   = useRef<SVGSVGElement>(null);
   const wrapRef  = useRef<HTMLDivElement>(null);
-  const dragRef  = useRef<{id:string;ox:number;oy:number}|null>(null);
+  const dragRef  = useRef<{id:string;ox:number;oy:number;moved:boolean}|null>(null);
   const prevStatusRef = useRef<Map<string,string>>(new Map());
   const eventIdRef    = useRef(0);
 
@@ -755,18 +897,49 @@ export default function JediChamber() {
     const svg=svgRef.current; if(!svg) return;
     (e.currentTarget as SVGElement).setPointerCapture(e.pointerId);
     const p=getSvgPt(e,svg);
-    dragRef.current={id, ox:p.x-curPos.x, oy:p.y-curPos.y};
+    dragRef.current={id, ox:p.x-curPos.x, oy:p.y-curPos.y, moved:false};
     setDragId(id); setTooltip(null);
   }
   function moveDrag(e: React.PointerEvent, id: string) {
     const d=dragRef.current; if(!d||d.id!==id) return;
     const svg=svgRef.current; if(!svg) return;
     const p=getSvgPt(e,svg);
-    setPosOverrides(prev => { const m=new Map(prev); m.set(id,{x:p.x-d.ox,y:p.y-d.oy}); return m; });
+    const nx=p.x-d.ox, ny=p.y-d.oy;
+    const prev=posOverrides.get(id);
+    if(prev && (Math.abs(nx-prev.x)>4||Math.abs(ny-prev.y)>4)) d.moved=true;
+    else if(!prev) d.moved=true;
+    setPosOverrides(prev => { const m=new Map(prev); m.set(id,{x:nx,y:ny}); return m; });
   }
   function endDrag(id: string) {
     if(dragRef.current?.id===id) { dragRef.current=null; setDragId(null); }
   }
+  function handleAgentClick(agent: AgentRecord, char: JediCharacter) {
+    if(dragRef.current?.moved) return; // was a drag, not a tap
+    setAssignDrawer({agent, char});
+  }
+
+  // ── Task dispatch ──────────────────────────────────────────────────────────
+  async function dispatchTask(agentId: string, task: string) {
+    try {
+      await fetch(`/api/agents/${agentId}/task`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ task }),
+      });
+    } catch { /* no-op — mock mode, fire-and-forget */ }
+  }
+
+  // ── Briefing dismiss ───────────────────────────────────────────────────────
+  function dismissBriefing() {
+    localStorage.setItem("jedi-briefing-seen", "1");
+    setShowBriefing(false);
+  }
+  useEffect(() => {
+    if (!showBriefing) return;
+    const t = setTimeout(dismissBriefing, 12000);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showBriefing]);
 
   const totalMidi = agents.reduce((s,a) => s+getMidichlorians(a), 0);
 
@@ -823,7 +996,22 @@ export default function JediChamber() {
       {/* ── Main area ── */}
       <div ref={wrapRef} className="chamber-wrap" style={{ position:"relative" }}>
 
+        <AnimatePresence>
+          {showBriefing && <MissionBriefing onDismiss={dismissBriefing} />}
+        </AnimatePresence>
+
         <MidichlorianPanel agents={agents} assignments={assignments} open={midiOpen} onClose={()=>setMidiOpen(false)} />
+
+        <AnimatePresence>
+          {assignDrawer && (
+            <AgentDrawer
+              agent={assignDrawer.agent}
+              character={assignDrawer.char}
+              onClose={()=>setAssignDrawer(null)}
+              onDispatch={dispatchTask}
+            />
+          )}
+        </AnimatePresence>
 
         <svg ref={svgRef} viewBox={viewBox} className="chamber-svg"
           preserveAspectRatio="xMidYMid meet"
@@ -892,6 +1080,7 @@ export default function JediChamber() {
                 onPointerDown={e=>startDrag(e,agent.id,pos)}
                 onPointerMove={e=>moveDrag(e,agent.id)}
                 onPointerUp={()=>endDrag(agent.id)}
+                onClick={()=>handleAgentClick(agent,char)}
                 onMouseEnter={e=>{ if(!dragRef.current) setTooltip({agent,character:char,x:e.clientX,y:e.clientY}); }}
                 onMouseMove={e =>{ if(!dragRef.current) setTooltip(t=>t?{...t,x:e.clientX,y:e.clientY}:null); }}
                 onMouseLeave={()=>{ if(!dragRef.current) setTooltip(null); }}>
@@ -975,6 +1164,27 @@ export default function JediChamber() {
             visible x={tooltip.x} y={tooltip.y} />
         )}
       </div>
+
+      {/* ── Task ticker ── */}
+      {agents.some(a=>a.status==="active"&&a.task) && (
+        <div className="task-ticker">
+          <span className="task-ticker-label">ACTIVE MISSIONS</span>
+          <div className="task-ticker-track">
+            {agents.filter(a=>a.status==="active"&&a.task).map(a=>{
+              const char=assignments.get(a.id);
+              return (
+                <span key={a.id} className="task-ticker-item"
+                  onClick={()=>{ if(char) setAssignDrawer({agent:a,char}); }}>
+                  <span className="task-ticker-dot" style={{background:char?.color??"#4ade80"}} />
+                  <strong>{char?.name??a.name}</strong>
+                  <span className="task-ticker-task">{a.task?.slice(0,70)}{(a.task?.length??0)>70?"…":""}</span>
+                  <span className="task-ticker-sep">·</span>
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── Legend ── */}
       <div className="legend">
