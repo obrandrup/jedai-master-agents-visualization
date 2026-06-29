@@ -13,7 +13,7 @@ const FCX = 500, FCY = 638;
 const FRX = 455, FRY = 222;
 const SRX = 358, SRY = 175;
 const MAX_SEATS = 24;
-const PR = 68;
+const PR = 90;
 
 const PILLARS = [
   { x: 50,  py: 598 }, { x: 150, py: 492 }, { x: 265, py: 447 },
@@ -648,7 +648,12 @@ export default function JediChamber() {
   const [pulseKey,    setPulseKey]    = useState(0);
   const [dragId,      setDragId]      = useState<string|null>(null);
   const [midiOpen,    setMidiOpen]    = useState(false);
-  const [dynVW,       setDynVW]       = useState(BASE_VW);
+  const [dynVW, setDynVW] = useState(() => {
+    if (typeof window === "undefined") return BASE_VW;
+    // topbar ≈56px, legend ≈38px
+    const h = window.innerHeight - 94;
+    return h > 0 ? Math.round(BASE_VW * window.innerWidth / h) : BASE_VW;
+  });
   const [completions, setCompletions] = useState<CompletionEvent[]>([]);
 
   const [posOverrides, setPosOverrides] = useState<Map<string,{x:number;y:number}>>(() => {
@@ -821,7 +826,7 @@ export default function JediChamber() {
         <MidichlorianPanel agents={agents} assignments={assignments} open={midiOpen} onClose={()=>setMidiOpen(false)} />
 
         <svg ref={svgRef} viewBox={viewBox} className="chamber-svg"
-          preserveAspectRatio="none"
+          preserveAspectRatio="xMidYMid meet"
           style={{ display:"block", width:"100%", height:"100%" }}>
 
           <ChamberRoom offset={offset} totalW={dynVW} />
@@ -891,6 +896,8 @@ export default function JediChamber() {
                 onMouseMove={e =>{ if(!dragRef.current) setTooltip(t=>t?{...t,x:e.clientX,y:e.clientY}:null); }}
                 onMouseLeave={()=>{ if(!dragRef.current) setTooltip(null); }}>
 
+                {/* Transparent hit area for reliable pointer events */}
+                <rect x={-seatR-12} y={-seatR-28} width={(seatR+12)*2} height={seatR*2+52} fill="transparent" />
                 <ellipse cx={0} cy={seatR*0.55} rx={seatR*1.05} ry={seatR*0.38} fill="#05070c" opacity={0.45*s} />
                 <motion.circle r={seatR+5*s} fill={sc} opacity={0.08}
                   stroke={sc} strokeWidth={1.8*s}
