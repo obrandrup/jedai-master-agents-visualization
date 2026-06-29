@@ -928,3 +928,205 @@ html, body {
   color: rgba(200,168,75,0.3);
   margin: 0 6px;
 }
+
+/* ── Topbar stat buttons ── */
+.topbar-stat-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 3px;
+  padding: 4px 8px;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.topbar-stat-btn:hover {
+  background: rgba(255,255,255,0.06);
+}
+.topbar-stat-btn.sp-active {
+  background: rgba(255,255,255,0.08);
+  outline: 1px solid rgba(255,255,255,0.12);
+}
+
+/* ── Status panel anchor ── */
+.status-panel-anchor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  pointer-events: none;
+}
+
+/* ── Status panel ── */
+.status-panel {
+  pointer-events: all;
+  background: rgba(6, 9, 22, 0.98);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  backdrop-filter: blur(14px);
+  overflow: hidden;
+  max-height: 300px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+}
+
+.status-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  flex-shrink: 0;
+}
+
+.status-panel-title {
+  font-family: var(--font-title);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.status-panel-count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+}
+
+.status-panel-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 2px 4px;
+  transition: color 0.15s;
+}
+.status-panel-close:hover { color: var(--text); }
+
+.status-panel-list {
+  overflow-y: auto;
+  flex: 1;
+}
+.status-panel-list::-webkit-scrollbar { width: 3px; }
+.status-panel-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+.status-panel-empty {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  padding: 16px 20px;
+}
+
+.status-panel-row {
+  display: grid;
+  grid-template-columns: 200px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.status-panel-row:hover { background: rgba(255,255,255,0.04); }
+
+.status-panel-row-left {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.status-panel-char {
+  font-family: var(--font-title);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.status-panel-name {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 0.3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-panel-row-right {
+  min-width: 0;
+}
+
+.status-panel-task {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: #94a3b8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+
+.status-panel-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.status-panel-error {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: #fca5a5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+
+.status-panel-action { flex-shrink: 0; }
+
+.status-panel-btn {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 2px;
+  padding: 3px 8px;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.status-panel-row:hover .status-panel-btn {
+  color: var(--gold);
+  border-color: rgba(200,168,75,0.35);
+  background: rgba(200,168,75,0.06);
+}
+.status-panel-btn.err { color: #f87171; border-color: rgba(239,68,68,0.25); }
+.status-panel-row:hover .status-panel-btn.err {
+  background: rgba(239,68,68,0.08);
+  border-color: rgba(239,68,68,0.5);
+}
+.status-panel-btn.active { color: #4ade80; border-color: rgba(74,222,128,0.25); }
+.status-panel-row:hover .status-panel-btn.active {
+  background: rgba(74,222,128,0.08);
+  border-color: rgba(74,222,128,0.5);
+}
+
+.status-panel-footer {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  padding: 7px 20px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+.status-panel-footer.err { color: #f87171; }

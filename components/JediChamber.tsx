@@ -618,6 +618,94 @@ function MidichlorianPanel({ agents, assignments, open, onClose }: {
   );
 }
 
+// ─── Status Panel ────────────────────────────────────────────────────────────
+function StatusPanel({ status, agents, assignments, onSelectAgent, onClose }: {
+  status: "active"|"idle"|"error";
+  agents: AgentRecord[];
+  assignments: Map<string,JediCharacter>;
+  onSelectAgent: (agent:AgentRecord, char:JediCharacter) => void;
+  onClose: () => void;
+}) {
+  const filtered = agents.filter(a => a.status === status);
+  const now = Date.now();
+
+  function elapsed(iso: string) {
+    const ms = now - new Date(iso).getTime();
+    const m = Math.floor(ms / 60000);
+    const h = Math.floor(m / 60);
+    if (h > 0) return `${h}h ${m % 60}m`;
+    if (m > 0) return `${m}m`;
+    return "<1m";
+  }
+
+  const label = status === "active" ? "RUNNING MISSIONS"
+    : status === "idle" ? "AGENTS ON STANDBY"
+    : "CRITICAL ALERTS";
+  const accent = status === "active" ? "#4ade80"
+    : status === "idle" ? "#94a3b8"
+    : "#ef4444";
+
+  return (
+    <motion.div className="status-panel"
+      initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.18 }}
+      style={{ "--status-accent": accent } as React.CSSProperties}>
+      <div className="status-panel-header">
+        <span className="status-panel-title" style={{ color: accent }}>{label}</span>
+        <span className="status-panel-count">{filtered.length} agent{filtered.length !== 1 ? "s" : ""}</span>
+        <button className="status-panel-close" onClick={onClose}>✕</button>
+      </div>
+      <div className="status-panel-list">
+        {filtered.length === 0 && (
+          <div className="status-panel-empty">No agents in this state.</div>
+        )}
+        {filtered.map(agent => {
+          const char = assignments.get(agent.id);
+          return (
+            <div key={agent.id} className="status-panel-row"
+              onClick={() => char && onSelectAgent(agent, char)}>
+              <div className="status-panel-row-left">
+                <span className="status-panel-char" style={{ color: char?.color ?? accent }}>
+                  {char?.name ?? "—"}
+                </span>
+                <span className="status-panel-name">{agent.name}</span>
+              </div>
+              <div className="status-panel-row-right">
+                {status === "active" && agent.task && (
+                  <span className="status-panel-task">{agent.task.slice(0, 55)}{agent.task.length > 55 ? "…" : ""}</span>
+                )}
+                {status === "idle" && (
+                  <span className="status-panel-meta">idle {elapsed(agent.startedAt)} · waiting for orders</span>
+                )}
+                {status === "error" && (
+                  <span className="status-panel-error">
+                    {agent.task ? agent.task.slice(0, 55) : "Unknown error — agent needs reassignment"}
+                  </span>
+                )}
+              </div>
+              <div className="status-panel-action">
+                {status === "idle"  && <span className="status-panel-btn">DISPATCH →</span>}
+                {status === "error" && <span className="status-panel-btn err">REASSIGN →</span>}
+                {status === "active" && <span className="status-panel-btn active">VIEW →</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {status === "idle" && filtered.length > 0 && (
+        <div className="status-panel-footer">
+          Click any standby agent to assign a mission
+        </div>
+      )}
+      {status === "error" && filtered.length > 0 && (
+        <div className="status-panel-footer err">
+          Critical agents need reassignment — click to open their command panel
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
 // ─── Mission Briefing (first-visit overlay) ──────────────────────────────────
 function MissionBriefing({ onDismiss }: { onDismiss: () => void }) {
   return (
@@ -790,6 +878,7 @@ export default function JediChamber() {
     return !localStorage.getItem("jedi-briefing-seen");
   });
   const [assignDrawer, setAssignDrawer] = useState<{agent:AgentRecord;char:JediCharacter}|null>(null);
+  const [statusPanel,  setStatusPanel]  = useState<"active"|"idle"|"error"|null>(null);
   const [dynVW, setDynVW] = useState(() => {
     if (typeof window === "undefined") return BASE_VW;
     // topbar ≈56px, legend ≈38px
@@ -967,12 +1056,19 @@ export default function JediChamber() {
           <span className="topbar-sub">Autonomous Agent Network</span>
         </div>
         <div className="topbar-right">
-          <span className="topbar-stat"><span className="stat-dot active-dot" />{agents.filter(a=>a.status==="active").length} running</span>
-          <span className="topbar-stat"><span className="stat-dot idle-dot" />{agents.filter(a=>a.status==="idle").length} standby</span>
+          <button className={`topbar-stat topbar-stat-btn${statusPanel==="active"?" sp-active":""}`}
+            onClick={()=>setStatusPanel(p=>p==="active"?null:"active")}>
+            <span className="stat-dot active-dot" />{agents.filter(a=>a.status==="active").length} running
+          </button>
+          <button className={`topbar-stat topbar-stat-btn${statusPanel==="idle"?" sp-active":""}`}
+            onClick={()=>setStatusPanel(p=>p==="idle"?null:"idle")}>
+            <span className="stat-dot idle-dot" />{agents.filter(a=>a.status==="idle").length} standby
+          </button>
           {agents.filter(a=>a.status==="error").length>0 && (
-            <span className="topbar-stat error-stat">
+            <button className={`topbar-stat topbar-stat-btn error-stat${statusPanel==="error"?" sp-active":""}`}
+              onClick={()=>setStatusPanel(p=>p==="error"?null:"error")}>
               <span className="stat-dot error-dot" />{agents.filter(a=>a.status==="error").length} critical
-            </span>
+            </button>
           )}
           <span className="topbar-midi-count" title="Network midichlorian count">
             ⚡ {(totalMidi/1000).toFixed(0)}k M
@@ -993,8 +1089,22 @@ export default function JediChamber() {
         </div>
       </div>
 
-      {/* ── Main area ── */}
+      {/* ── Main area (+ floating status panel) ── */}
       <div ref={wrapRef} className="chamber-wrap" style={{ position:"relative" }}>
+        {/* Status panel floats over the chamber below the topbar */}
+        <div className="status-panel-anchor">
+          <AnimatePresence>
+            {statusPanel && (
+              <StatusPanel
+                status={statusPanel}
+                agents={agents}
+                assignments={assignments}
+                onSelectAgent={(agent, char) => { setAssignDrawer({agent, char}); setStatusPanel(null); }}
+                onClose={() => setStatusPanel(null)}
+              />
+            )}
+          </AnimatePresence>
+        </div>
 
         <AnimatePresence>
           {showBriefing && <MissionBriefing onDismiss={dismissBriefing} />}
